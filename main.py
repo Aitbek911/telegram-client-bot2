@@ -32,5 +32,9 @@ async def create_app():
     setup_application(app, dp, bot=bot)
     return app
 
+async def main():
+    app = await create_app()
+    web.run_app(app, host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+
 if __name__ == "__main__":
-    web.run_app(await create_app(), host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+    asyncio.run(main())
