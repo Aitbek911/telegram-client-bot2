@@ -3,8 +3,8 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.utils import executor
 import logging
 
-API_TOKEN = os.getenv("7757162032:AAHrUdENgxu9J0l52TjGLAktbu8Toec7fU0")
-ADMIN_ID = os.getenv("718648416")
+API_TOKEN = os.getenv("BOT_TOKEN")
+ADMIN_ID = os.getenv("ADMIN_ID")
 
 logging.basicConfig(level=logging.INFO)
 
