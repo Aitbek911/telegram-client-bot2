@@ -1,49 +1,36 @@
 import os
-import logging
-from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message
-from aiogram.enums import ParseMode
-from aiogram.utils.markdown import hbold
-from aiogram.client.default import DefaultBotProperties
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram import Router
-from aiogram import types
-from aiogram import html
+import asyncio
+from aiohttp import web
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import Update
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
 TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = os.getenv("ADMIN_ID")
+WEBHOOK_PATH = ""
+WEBHOOK_URL = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}{WEBHOOK_PATH}"
 
-bot = Bot(
-    token=TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
-dp = Dispatcher(storage=MemoryStorage())
-router = Router()
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
 
+@dp.message()
+async def handle_message(message: types.Message):
+    await message.answer(f"Привет, {message.from_user.first_name}!")
 
-@router.message(F.text, F.text.startswith("/start"))
-async def cmd_start(message: Message):
-    args = message.text.split(maxsplit=1)
-    source = args[1] if len(args) > 1 else "без источника"
-    user = message.from_user
+async def on_startup(app):
+    await bot.set_webhook(WEBHOOK_URL)
+    print("Webhook установлен:", WEBHOOK_URL)
 
-    await message.answer(
-        f"Сәлем, <b>{html.quote(user.full_name)}</b>!\n"
-        f"Сен ботқа осы жерден келдің: <code>{source}</code>"
-    )
+async def on_shutdown(app):
+    await bot.delete_webhook()
 
-    text = (
-        f"<b>Жаңа пайдаланушы!</b>\n"
-        f"Аты: {html.quote(user.full_name)}\n"
-        f"Username: @{user.username}\n"
-        f"ID: <code>{user.id}</code>\n"
-        f"Келген жері: <code>{source}</code>"
-    )
-    await bot.send_message(ADMIN_ID, text)
+async def create_app():
+    app = web.Application()
+    app.on_startup.append(on_startup)
+    app.on_shutdown.append(on_shutdown)
 
-
-dp.include_router(router)
+    SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=WEBHOOK_PATH)
+    setup_application(app, dp, bot=bot)
+    return app
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    dp.run_polling(bot)
+    web.run_app(await create_app(), host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
